@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo Sree</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    
+    h2 {
+      color: #3498db;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+      margin-top: 20px;
+    }
+    
+    .todo-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .section {
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .todo-list {
+      min-height: 50px;
+      padding: 10px 0;
+    }
+    
+    .todo-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      margin: 10px 0;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      border-left: 4px solid #3498db;
+      cursor: move;
+      transition: all 0.2s ease;
+    }
+    
+    .todo-item:hover {
+      background-color: #e9ecef;
+    }
+    
+    .todo-item.dragging {
+      opacity: 0.5;
+    }
+    
+    .todo-item.completed {
+      border-left-color: #27ae60;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+    
+    .checkbox {
+      margin-right: 10px;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+    }
+    
+    .todo-text {
+      flex-grow: 1;
+      font-size: 16px;
+    }
+    
+    .delete-btn {
+      color: #e74c3c;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    
+    .delete-btn:hover {
+      opacity: 1;
+    }
+    
+    .new-todo {
+      display: flex;
+      margin-top: 20px;
+      gap: 10px;
+    }
+    
+    .new-todo input {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+    }
+    
+    .drag-hint {
+      font-size: 14px;
+      color: #7f8c8d;
+      text-align: center;
+      margin-top: 10px;
+      font-style: italic;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #7f8c8d;
+      font-size: 14px;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .new-item {
+      animation: fadeIn 0.5s;
+    }
+    
+    /* Styles for the drag and drop */
+    .drag-over {
+      background-color: #ebf5fb;
+      border: 2px dashed #3498db;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Todo App with 1-Hour Goals</h1>
+    <p>Organize your tasks and prioritize what's important</p>
+  </div>
+  
+  <div class="todo-container">
+    <div class="section">
+      <h2>Next 1 Hour Goals</h2>
+      <div class="todo-list" id="hourGoals" ondragover="allowDrop(event)" ondrop="drop(event)" data-section="hourGoals">
+        <!-- Items will be added here dynamically -->
+      </div>
+      <p class="drag-hint">Drag items from below to add to your 1-hour goals</p>
+    </div>
+    
+    <div class="section">
+      <h2>All Tasks</h2>
+      <div class="todo-list" id="allTasks" ondragover="allowDrop(event)" ondrop="drop(event)" data-section="allTasks">
+        <!-- Items will be added here dynamically -->
+      </div>
+      
+      <div class="new-todo">
+        <input type="text" id="newTodoInput" placeholder="Add a new task...">
+        <button id="addTodoBtn">Add Task</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>Stay focused and tackle one task at a time!</p>
+  </div>
+
+  <script>
+    // Element references
+    const newTodoInput = document.getElementById('newTodoInput');
+    const addTodoBtn = document.getElementById('addTodoBtn');
+    const allTasksList = document.getElementById('allTasks');
+    const hourGoalsList = document.getElementById('hourGoals');
+    
+    // Counter for unique IDs
+    let todoCounter = 1;
+    
+    // Add event listeners
+    addTodoBtn.addEventListener('click', addNewTodo);
+    newTodoInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addNewTodo();
+      }
+    });
+    
+    // Sample tasks to start with
+    const sampleTasks = [
+      "Respond to emails",
+      "Review project documentation",
+      "Prepare presentation for meeting"
+    ];
+    
+    // Initialize with sample tasks
+    window.addEventListener('DOMContentLoaded', () => {
+      // Add sample tasks with a delay between each
+      setTimeout(() => addTodoWithText(sampleTasks[0]), 300);
+      setTimeout(() => addTodoWithText(sampleTasks[1]), 700);
+      setTimeout(() => addTodoWithText(sampleTasks[2]), 1100);
+    });
+    
+    // Function to add a new todo
+    function addNewTodo() {
+      const todoText = newTodoInput.value.trim();
+      if (todoText) {
+        addTodoWithText(todoText);
+        newTodoInput.value = '';
+      }
+    }
+    
+    // Function to add a todo with specified text
+    function addTodoWithText(text) {
+      const todoId = `todo-${todoCounter++}`;
+      const todoItem = document.createElement('div');
+      todoItem.className = 'todo-item new-item';
+      todoItem.id = todoId;
+      todoItem.draggable = true;
+      todoItem.setAttribute('data-id', todoId);
+      
+      // Set up drag events
+      todoItem.addEventListener('dragstart', dragStart);
+      todoItem.addEventListener('dragend', dragEnd);
+      
+      // Create checkbox
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'checkbox';
+      checkbox.addEventListener('change', function() {
+        todoItem.classList.toggle('completed', this.checked);
+      });
+      
+      // Create todo text
+      const todoTextSpan = document.createElement('span');
+      todoTextSpan.className = 'todo-text';
+      todoTextSpan.textContent = text;
+      
+      // Create delete button
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.addEventListener('click', function() {
+        todoItem.remove();
+      });
+      
+      // Assemble todo item
+      todoItem.appendChild(checkbox);
+      todoItem.appendChild(todoTextSpan);
+      todoItem.appendChild(deleteBtn);
+      
+      // Add to all tasks list
+      allTasksList.appendChild(todoItem);
+    }
+    
+    // Drag and drop functionality
+    let draggedItem = null;
+    
+    function dragStart(e) {
+      draggedItem = this;
+      setTimeout(() => this.classList.add('dragging'), 0);
+      
+      // Store the source section
+      e.dataTransfer.setData('text/plain', this.getAttribute('data-id'));
+      e.dataTransfer.setData('source-section', this.parentNode.getAttribute('data-section'));
+    }
+    
+    function dragEnd() {
+      this.classList.remove('dragging');
+      draggedItem = null;
+      
+      // Remove drag-over styling from all zones
+      document.querySelectorAll('.todo-list').forEach(list => {
+        list.classList.remove('drag-over');
+      });
+    }
+    
+    function allowDrop(e) {
+      e.preventDefault();
+      if (draggedItem) {
+        // Add styling to indicate drop zone
+        e.currentTarget.classList.add('drag-over');
+      }
+    }
+    
+    function drop(e) {
+      e.preventDefault();
+      
+      // Remove drag-over styling
+      e.currentTarget.classList.remove('drag-over');
+      
+      if (draggedItem) {
+        const sourceSection = e.dataTransfer.getData('source-section');
+        const targetSection = e.currentTarget.getAttribute('data-section');
+        
+        // If dropping to a different section than the source
+        if (sourceSection !== targetSection) {
+          // Clone the item to the new section
+          e.currentTarget.appendChild(draggedItem);
+        }
+      }
+    }
+    
+    // Add dragover and dragleave events to all todo lists
+    document.querySelectorAll('.todo-list').forEach(list => {
+      list.addEventListener('dragleave', function() {
+        this.classList.remove('drag-over');
+      });
+    });
+  </script>
+</body>
+</html>

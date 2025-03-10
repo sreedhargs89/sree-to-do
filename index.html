@@ -368,6 +368,35 @@
     let endTime;
     let reflections = [];
     
+    // Define default tasks - expanded to include at least 20 tasks
+    const defaultTasks = [
+      "Respond to emails",
+      "Review project documentation",
+      "Prepare presentation for meeting",
+      "Update team dashboard",
+      "Complete weekly report",
+      "Schedule client follow-up calls",
+      "Research new industry trends",
+      "Organize digital files",
+      "Update project timeline",
+      "Create wireframes for new feature",
+      "Review and provide feedback on team submissions",
+      "Prepare agenda for tomorrow's meeting",
+      "Update personal development plan",
+      "Debug reported issues",
+      "Document new processes",
+      "Read industry publications",
+      "Update stakeholders on project progress",
+      "Review quarterly goals",
+      "Organize next sprint planning",
+      "Brainstorm solutions for current challenges"
+    ];
+    
+    // Application installation identifier - used to check first run
+    const APP_INSTALL_KEY = 'todoApp_installed';
+    const DATA_VERSION_KEY = 'todoApp_dataVersion';
+    const CURRENT_DATA_VERSION = '1.0'; // Increment this when changing data structure
+    
     // Initialize the app
     function initApp() {
       // Set up event listeners
@@ -388,22 +417,42 @@
       // Initialize timer to next hour
       initTimer();
       
-      // Load saved data from localStorage
-      loadSavedData();
+      // Check if this is first run or if we need to initialize default data
+      checkAndInitializeAppData();
+    }
+    
+    // Check if app has been installed before and set up default data if needed
+    function checkAndInitializeAppData() {
+      const isInstalled = localStorage.getItem(APP_INSTALL_KEY);
+      const dataVersion = localStorage.getItem(DATA_VERSION_KEY);
       
-      // Add sample tasks
-      if (allTasksList.children.length === 0) {
-        const sampleTasks = [
-          "Respond to emails",
-          "Review project documentation",
-          "Prepare presentation for meeting"
-        ];
+      if (!isInstalled || dataVersion !== CURRENT_DATA_VERSION) {
+        // First run or data version changed - initialize default data
+        initializeDefaultData();
         
-        // Add sample tasks with a delay between each
-        setTimeout(() => addTodoWithText(sampleTasks[0]), 300);
-        setTimeout(() => addTodoWithText(sampleTasks[1]), 700);
-        setTimeout(() => addTodoWithText(sampleTasks[2]), 1100);
+        // Mark as installed
+        localStorage.setItem(APP_INSTALL_KEY, 'true');
+        localStorage.setItem(DATA_VERSION_KEY, CURRENT_DATA_VERSION);
+      } else {
+        // App already installed, just load saved data
+        loadSavedData();
       }
+    }
+    
+    // Initialize default data for first run
+    function initializeDefaultData() {
+      // Set up default tasks
+      const defaultAllTasks = defaultTasks.map(text => {
+        return { text: text, completed: false };
+      });
+      
+      // Save default tasks to localStorage
+      localStorage.setItem('todoApp_allTasks', JSON.stringify(defaultAllTasks));
+      localStorage.setItem('todoApp_hourGoals', JSON.stringify([]));
+      localStorage.setItem('todoApp_reflections', JSON.stringify([]));
+      
+      // Load the data
+      loadSavedData();
     }
     
     // Initialize timer to end at the next hour
@@ -498,7 +547,7 @@
       const reflection = {
         text: text,
         timestamp: timestamp,
-        date: now
+        date: now.toISOString()  // Store date in ISO format for better compatibility
       };
       
       // Add to reflections array
@@ -547,6 +596,7 @@
       if (todoText) {
         addTodoWithText(todoText);
         newTodoInput.value = '';
+        newTodoInput.focus();
       }
     }
     
@@ -729,6 +779,9 @@
           };
         });
         
+        // Add missing default tasks if allTasks has fewer than minimum required
+        ensureMinimumTasks(allTasks);
+        
         // Save to localStorage
         localStorage.setItem('todoApp_allTasks', JSON.stringify(allTasks));
         localStorage.setItem('todoApp_hourGoals', JSON.stringify(hourGoals));
@@ -738,13 +791,50 @@
       }
     }
     
+    // Ensure we have at least the minimum number of tasks
+    function ensureMinimumTasks(allTasks) {
+      const MINIMUM_TASKS = 20;
+      
+      if (allTasks.length < MINIMUM_TASKS) {
+        // Track which default tasks are already in the list
+        const existingTexts = new Set(allTasks.map(task => task.text));
+        
+        // Add default tasks that aren't already in the list
+        for (const taskText of defaultTasks) {
+          if (!existingTexts.has(taskText) && allTasks.length < MINIMUM_TASKS) {
+            allTasks.push({
+              text: taskText,
+              completed: false
+            });
+            existingTexts.add(taskText);
+          }
+        }
+        
+        // If we still don't have enough, add numbered tasks
+        let counter = 1;
+        while (allTasks.length < MINIMUM_TASKS) {
+          const newTaskText = `Task ${counter++}`;
+          if (!existingTexts.has(newTaskText)) {
+            allTasks.push({
+              text: newTaskText,
+              completed: false
+            });
+            existingTexts.add(newTaskText);
+          }
+        }
+      }
+    }
+    
     // Load saved data from localStorage
     function loadSavedData() {
       try {
         // Load tasks
-        const savedAllTasks = JSON.parse(localStorage.getItem('todoApp_allTasks')) || [];
+        let savedAllTasks = JSON.parse(localStorage.getItem('todoApp_allTasks')) || [];
         const savedHourGoals = JSON.parse(localStorage.getItem('todoApp_hourGoals')) || [];
         const savedReflections = JSON.parse(localStorage.getItem('todoApp_reflections')) || [];
+        
+        // Ensure we have the minimum number of tasks
+        ensureMinimumTasks(savedAllTasks);
         
         // Clear existing items
         allTasksList.innerHTML = '';
@@ -767,8 +857,13 @@
         // Restore reflections
         reflections = savedReflections;
         loadReflections();
+        
+        // Save back to localStorage to ensure minimum tasks are stored
+        saveToLocalStorage();
       } catch (e) {
         console.error('Error loading from localStorage:', e);
+        // If loading fails, initialize with default data
+        initializeDefaultData();
       }
     }
     
@@ -819,6 +914,16 @@
       setupDraggable(todoItem);
       
       return todoItem;
+    }
+    
+    // Function to clear all localStorage data (for testing)
+    function resetApp() {
+      localStorage.removeItem(APP_INSTALL_KEY);
+      localStorage.removeItem(DATA_VERSION_KEY);
+      localStorage.removeItem('todoApp_allTasks');
+      localStorage.removeItem('todoApp_hourGoals');
+      localStorage.removeItem('todoApp_reflections');
+      location.reload();
     }
     
     // Initialize the app when the page loads

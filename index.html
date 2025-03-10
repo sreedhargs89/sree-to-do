@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo Sree</title>
+  <title>Sree App with Timer and Reflection</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
       background-color: #f5f5f5;
       color: #333;
+      display: flex;
+      flex-direction: column;
     }
     
     .header {
@@ -31,7 +33,20 @@
       margin-top: 20px;
     }
     
+    .main-container {
+      display: flex;
+      gap: 20px;
+    }
+    
     .todo-container {
+      flex: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .timer-container {
+      flex: 1;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -42,6 +57,64 @@
       border-radius: 10px;
       padding: 20px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .timer-display {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      color: #2c3e50;
+      margin: 20px 0;
+    }
+    
+    .timer-label {
+      text-align: center;
+      font-size: 14px;
+      color: #7f8c8d;
+      margin-bottom: 10px;
+    }
+    
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .reflection-area {
+      width: 100%;
+      min-height: 150px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+    
+    .reflection-list {
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .reflection-entry {
+      background-color: #f8f9fa;
+      border-left: 4px solid #9b59b6;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 0 5px 5px 0;
+    }
+    
+    .reflection-time {
+      font-size: 12px;
+      color: #7f8c8d;
+      margin-bottom: 5px;
+    }
+    
+    .reflection-text {
+      font-size: 14px;
     }
     
     .todo-list {
@@ -57,8 +130,9 @@
       background-color: #f8f9fa;
       border-radius: 5px;
       border-left: 4px solid #3498db;
-      cursor: move;
+      cursor: grab;
       transition: all 0.2s ease;
+      position: relative;
     }
     
     .todo-item:hover {
@@ -67,12 +141,24 @@
     
     .todo-item.dragging {
       opacity: 0.5;
+      cursor: grabbing;
     }
     
     .todo-item.completed {
       border-left-color: #27ae60;
       text-decoration: line-through;
       opacity: 0.7;
+    }
+    
+    .drag-handle {
+      cursor: grab;
+      padding: 5px;
+      margin-right: 5px;
+      color: #95a5a6;
+    }
+    
+    .drag-handle:hover {
+      color: #34495e;
     }
     
     .checkbox {
@@ -130,6 +216,22 @@
       background-color: #2980b9;
     }
     
+    button.reset {
+      background-color: #e74c3c;
+    }
+    
+    button.reset:hover {
+      background-color: #c0392b;
+    }
+    
+    button.save {
+      background-color: #27ae60;
+    }
+    
+    button.save:hover {
+      background-color: #219955;
+    }
+    
     .drag-hint {
       font-size: 14px;
       color: #7f8c8d;
@@ -154,37 +256,92 @@
       animation: fadeIn 0.5s;
     }
     
-    /* Styles for the drag and drop */
+    .blink {
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    /* Improved styles for drag and drop */
     .drag-over {
       background-color: #ebf5fb;
       border: 2px dashed #3498db;
+      border-radius: 5px;
+      padding: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .todo-placeholder {
+      height: 35px;
+      background-color: rgba(52, 152, 219, 0.1);
+      border: 2px dashed #3498db;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    
+    /* Responsive layout */
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .timer-container {
+        order: -1;
+      }
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>Todo App with 1-Hour Goals</h1>
-    <p>Organize your tasks and prioritize what's important</p>
+    <h1>Todo App with Hourly Timer</h1>
+    <p>Focus on your tasks and reflect on your progress every hour</p>
   </div>
   
-  <div class="todo-container">
-    <div class="section">
-      <h2>Next 1 Hour Goals</h2>
-      <div class="todo-list" id="hourGoals" ondragover="allowDrop(event)" ondrop="drop(event)" data-section="hourGoals">
-        <!-- Items will be added here dynamically -->
-      </div>
-      <p class="drag-hint">Drag items from below to add to your 1-hour goals</p>
-    </div>
-    
-    <div class="section">
-      <h2>All Tasks</h2>
-      <div class="todo-list" id="allTasks" ondragover="allowDrop(event)" ondrop="drop(event)" data-section="allTasks">
-        <!-- Items will be added here dynamically -->
+  <div class="main-container">
+    <div class="todo-container">
+      <div class="section">
+        <h2>Next 1 Hour Goals</h2>
+        <div class="todo-list" id="hourGoals">
+          <!-- Items will be added here dynamically -->
+        </div>
+        <p class="drag-hint">Drag items from below to add to your 1-hour goals</p>
       </div>
       
-      <div class="new-todo">
-        <input type="text" id="newTodoInput" placeholder="Add a new task...">
-        <button id="addTodoBtn">Add Task</button>
+      <div class="section">
+        <h2>All Tasks</h2>
+        <div class="todo-list" id="allTasks">
+          <!-- Items will be added here dynamically -->
+        </div>
+        
+        <div class="new-todo">
+          <input type="text" id="newTodoInput" placeholder="Add a new task...">
+          <button id="addTodoBtn">Add Task</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="timer-container">
+      <div class="section">
+        <h2>Hour Timer</h2>
+        <p class="timer-label">Time remaining in current hour:</p>
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <div class="timer-controls">
+          <button id="resetTimerBtn" class="reset">Reset Timer</button>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Hourly Reflection</h2>
+        <textarea id="reflectionInput" class="reflection-area" placeholder="Reflect on what you accomplished this hour..."></textarea>
+        <button id="saveReflectionBtn" class="save">Save Reflection</button>
+        
+        <div class="reflection-list" id="reflectionList">
+          <!-- Reflections will be added here -->
+        </div>
       </div>
     </div>
   </div>
@@ -199,32 +356,190 @@
     const addTodoBtn = document.getElementById('addTodoBtn');
     const allTasksList = document.getElementById('allTasks');
     const hourGoalsList = document.getElementById('hourGoals');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const resetTimerBtn = document.getElementById('resetTimerBtn');
+    const reflectionInput = document.getElementById('reflectionInput');
+    const saveReflectionBtn = document.getElementById('saveReflectionBtn');
+    const reflectionList = document.getElementById('reflectionList');
     
     // Counter for unique IDs
     let todoCounter = 1;
+    let timerInterval;
+    let endTime;
+    let reflections = [];
     
-    // Add event listeners
-    addTodoBtn.addEventListener('click', addNewTodo);
-    newTodoInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        addNewTodo();
+    // Initialize the app
+    function initApp() {
+      // Set up event listeners
+      addTodoBtn.addEventListener('click', addNewTodo);
+      newTodoInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          addNewTodo();
+        }
+      });
+      
+      resetTimerBtn.addEventListener('click', resetTimer);
+      saveReflectionBtn.addEventListener('click', saveReflection);
+      
+      // Make the lists droppable
+      setupDragDropContainer(hourGoalsList);
+      setupDragDropContainer(allTasksList);
+      
+      // Initialize timer to next hour
+      initTimer();
+      
+      // Load saved data from localStorage
+      loadSavedData();
+      
+      // Add sample tasks
+      if (allTasksList.children.length === 0) {
+        const sampleTasks = [
+          "Respond to emails",
+          "Review project documentation",
+          "Prepare presentation for meeting"
+        ];
+        
+        // Add sample tasks with a delay between each
+        setTimeout(() => addTodoWithText(sampleTasks[0]), 300);
+        setTimeout(() => addTodoWithText(sampleTasks[1]), 700);
+        setTimeout(() => addTodoWithText(sampleTasks[2]), 1100);
       }
-    });
+    }
     
-    // Sample tasks to start with
-    const sampleTasks = [
-      "Respond to emails",
-      "Review project documentation",
-      "Prepare presentation for meeting"
-    ];
+    // Initialize timer to end at the next hour
+    function initTimer() {
+      const now = new Date();
+      
+      // Set endTime to the next hour
+      endTime = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        now.getHours() + 1,
+        0,
+        0
+      );
+      
+      updateTimer();
+      
+      // Clear any existing interval
+      if (timerInterval) clearInterval(timerInterval);
+      
+      // Update timer every second
+      timerInterval = setInterval(updateTimer, 1000);
+    }
     
-    // Initialize with sample tasks
-    window.addEventListener('DOMContentLoaded', () => {
-      // Add sample tasks with a delay between each
-      setTimeout(() => addTodoWithText(sampleTasks[0]), 300);
-      setTimeout(() => addTodoWithText(sampleTasks[1]), 700);
-      setTimeout(() => addTodoWithText(sampleTasks[2]), 1100);
-    });
+    // Reset timer to 1 hour from now
+    function resetTimer() {
+      endTime = new Date();
+      endTime.setHours(endTime.getHours() + 1);
+      
+      updateTimer();
+      
+      // Flash the timer to indicate reset
+      timerDisplay.classList.add('blink');
+      setTimeout(() => {
+        timerDisplay.classList.remove('blink');
+      }, 1000);
+      
+      // Prompt for reflection on completed hour
+      reflectionInput.placeholder = "What did you accomplish in the past hour? What went well or could improve?";
+      reflectionInput.focus();
+    }
+    
+    // Update the timer display
+    function updateTimer() {
+      const now = new Date();
+      let diff = Math.max(0, endTime - now);
+      
+      if (diff === 0) {
+        // Timer reached zero
+        clearInterval(timerInterval);
+        timerDisplay.classList.add('blink');
+        
+        // Prompt for reflection
+        reflectionInput.placeholder = "Time's up! What did you accomplish this hour?";
+        reflectionInput.focus();
+        
+        // Reset timer for the next hour after a brief pause
+        setTimeout(() => {
+          timerDisplay.classList.remove('blink');
+          resetTimer();
+        }, 3000);
+        
+        return;
+      }
+      
+      // Calculate hours, minutes, seconds
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      diff -= hours * (1000 * 60 * 60);
+      
+      const mins = Math.floor(diff / (1000 * 60));
+      diff -= mins * (1000 * 60);
+      
+      const secs = Math.floor(diff / 1000);
+      
+      // Update display
+      timerDisplay.textContent = 
+        (hours < 10 ? '0' : '') + hours + ':' +
+        (mins < 10 ? '0' : '') + mins + ':' +
+        (secs < 10 ? '0' : '') + secs;
+    }
+    
+    // Save reflection
+    function saveReflection() {
+      const text = reflectionInput.value.trim();
+      if (!text) return;
+      
+      const now = new Date();
+      const timestamp = now.toLocaleString();
+      
+      // Create reflection object
+      const reflection = {
+        text: text,
+        timestamp: timestamp,
+        date: now
+      };
+      
+      // Add to reflections array
+      reflections.unshift(reflection);
+      
+      // Clear input
+      reflectionInput.value = '';
+      
+      // Add to UI
+      addReflectionToUI(reflection);
+      
+      // Save to localStorage
+      saveToLocalStorage();
+    }
+    
+    // Add reflection to UI
+    function addReflectionToUI(reflection) {
+      const entryEl = document.createElement('div');
+      entryEl.className = 'reflection-entry new-item';
+      
+      const timeEl = document.createElement('div');
+      timeEl.className = 'reflection-time';
+      timeEl.textContent = reflection.timestamp;
+      
+      const textEl = document.createElement('div');
+      textEl.className = 'reflection-text';
+      textEl.textContent = reflection.text;
+      
+      entryEl.appendChild(timeEl);
+      entryEl.appendChild(textEl);
+      
+      reflectionList.insertBefore(entryEl, reflectionList.firstChild);
+    }
+    
+    // Load reflections from array
+    function loadReflections() {
+      reflectionList.innerHTML = '';
+      reflections.forEach(reflection => {
+        addReflectionToUI(reflection);
+      });
+    }
     
     // Function to add a new todo
     function addNewTodo() {
@@ -241,12 +556,12 @@
       const todoItem = document.createElement('div');
       todoItem.className = 'todo-item new-item';
       todoItem.id = todoId;
-      todoItem.draggable = true;
-      todoItem.setAttribute('data-id', todoId);
+      todoItem.setAttribute('draggable', 'true');
       
-      // Set up drag events
-      todoItem.addEventListener('dragstart', dragStart);
-      todoItem.addEventListener('dragend', dragEnd);
+      // Create drag handle
+      const dragHandle = document.createElement('div');
+      dragHandle.className = 'drag-handle';
+      dragHandle.innerHTML = '&#8942;&#8942;';  // "⋮⋮" vertical dots for drag handle
       
       // Create checkbox
       const checkbox = document.createElement('input');
@@ -254,6 +569,7 @@
       checkbox.className = 'checkbox';
       checkbox.addEventListener('change', function() {
         todoItem.classList.toggle('completed', this.checked);
+        saveToLocalStorage();
       });
       
       // Create todo text
@@ -267,71 +583,246 @@
       deleteBtn.innerHTML = '&times;';
       deleteBtn.addEventListener('click', function() {
         todoItem.remove();
+        saveToLocalStorage();
       });
       
       // Assemble todo item
+      todoItem.appendChild(dragHandle);
       todoItem.appendChild(checkbox);
       todoItem.appendChild(todoTextSpan);
       todoItem.appendChild(deleteBtn);
       
+      // Set up drag events
+      setupDraggable(todoItem);
+      
       // Add to all tasks list
       allTasksList.appendChild(todoItem);
+      
+      // Save to localStorage
+      saveToLocalStorage();
     }
     
-    // Drag and drop functionality
-    let draggedItem = null;
-    
-    function dragStart(e) {
-      draggedItem = this;
-      setTimeout(() => this.classList.add('dragging'), 0);
-      
-      // Store the source section
-      e.dataTransfer.setData('text/plain', this.getAttribute('data-id'));
-      e.dataTransfer.setData('source-section', this.parentNode.getAttribute('data-section'));
-    }
-    
-    function dragEnd() {
-      this.classList.remove('dragging');
-      draggedItem = null;
-      
-      // Remove drag-over styling from all zones
-      document.querySelectorAll('.todo-list').forEach(list => {
-        list.classList.remove('drag-over');
-      });
-    }
-    
-    function allowDrop(e) {
-      e.preventDefault();
-      if (draggedItem) {
-        // Add styling to indicate drop zone
-        e.currentTarget.classList.add('drag-over');
-      }
-    }
-    
-    function drop(e) {
-      e.preventDefault();
-      
-      // Remove drag-over styling
-      e.currentTarget.classList.remove('drag-over');
-      
-      if (draggedItem) {
-        const sourceSection = e.dataTransfer.getData('source-section');
-        const targetSection = e.currentTarget.getAttribute('data-section');
+    // Set up draggable for an element
+    function setupDraggable(element) {
+      element.addEventListener('dragstart', function(e) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', element.id);
         
-        // If dropping to a different section than the source
-        if (sourceSection !== targetSection) {
-          // Clone the item to the new section
-          e.currentTarget.appendChild(draggedItem);
+        this.classList.add('dragging');
+        
+        // Delay to allow the dragging class to be applied
+        setTimeout(() => {
+          this.style.opacity = '0.4';
+        }, 0);
+      });
+      
+      element.addEventListener('dragend', function() {
+        this.classList.remove('dragging');
+        this.style.opacity = '1';
+        saveToLocalStorage();
+      });
+    }
+    
+    // Set up a container for drag and drop
+    function setupDragDropContainer(container) {
+      container.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        
+        // Find the closest todo item
+        const afterElement = getDragAfterElement(container, e.clientY);
+        const draggable = document.querySelector('.dragging');
+        
+        // Remove existing placeholders
+        removePlaceholders();
+        
+        if (draggable && container.contains(draggable)) {
+          // If dragging within the same container, don't add placeholder
+          return;
         }
+        
+        // Add a placeholder
+        const placeholder = document.createElement('div');
+        placeholder.className = 'todo-placeholder';
+        
+        if (afterElement) {
+          container.insertBefore(placeholder, afterElement);
+        } else {
+          container.appendChild(placeholder);
+        }
+      });
+      
+      container.addEventListener('dragleave', function(e) {
+        if (e.relatedTarget && !this.contains(e.relatedTarget)) {
+          removePlaceholders();
+        }
+      });
+      
+      container.addEventListener('drop', function(e) {
+        e.preventDefault();
+        
+        const id = e.dataTransfer.getData('text/plain');
+        const draggableElement = document.getElementById(id);
+        
+        if (!draggableElement) return;
+        
+        // Remove placeholders
+        removePlaceholders();
+        
+        // Find the closest todo item
+        const afterElement = getDragAfterElement(container, e.clientY);
+        
+        if (afterElement) {
+          container.insertBefore(draggableElement, afterElement);
+        } else {
+          container.appendChild(draggableElement);
+        }
+        
+        draggableElement.classList.remove('dragging');
+        draggableElement.style.opacity = '1';
+        
+        // Save to localStorage
+        saveToLocalStorage();
+      });
+    }
+    
+    // Helper function to get the element to insert after based on mouse position
+    function getDragAfterElement(container, y) {
+      // Get all draggable elements in the container that are not currently being dragged
+      const draggableElements = [...container.querySelectorAll('.todo-item:not(.dragging)')];
+      
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        // If offset is negative but greater than the current closest, this element is closer
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    
+    // Helper function to remove all placeholders
+    function removePlaceholders() {
+      document.querySelectorAll('.todo-placeholder').forEach(placeholder => {
+        placeholder.remove();
+      });
+    }
+    
+    // Save data to localStorage
+    function saveToLocalStorage() {
+      try {
+        // Save tasks
+        const allTasks = Array.from(allTasksList.querySelectorAll('.todo-item')).map(item => {
+          return {
+            text: item.querySelector('.todo-text').textContent,
+            completed: item.querySelector('.checkbox').checked
+          };
+        });
+        
+        const hourGoals = Array.from(hourGoalsList.querySelectorAll('.todo-item')).map(item => {
+          return {
+            text: item.querySelector('.todo-text').textContent,
+            completed: item.querySelector('.checkbox').checked
+          };
+        });
+        
+        // Save to localStorage
+        localStorage.setItem('todoApp_allTasks', JSON.stringify(allTasks));
+        localStorage.setItem('todoApp_hourGoals', JSON.stringify(hourGoals));
+        localStorage.setItem('todoApp_reflections', JSON.stringify(reflections));
+      } catch (e) {
+        console.error('Error saving to localStorage:', e);
       }
     }
     
-    // Add dragover and dragleave events to all todo lists
-    document.querySelectorAll('.todo-list').forEach(list => {
-      list.addEventListener('dragleave', function() {
-        this.classList.remove('drag-over');
+    // Load saved data from localStorage
+    function loadSavedData() {
+      try {
+        // Load tasks
+        const savedAllTasks = JSON.parse(localStorage.getItem('todoApp_allTasks')) || [];
+        const savedHourGoals = JSON.parse(localStorage.getItem('todoApp_hourGoals')) || [];
+        const savedReflections = JSON.parse(localStorage.getItem('todoApp_reflections')) || [];
+        
+        // Clear existing items
+        allTasksList.innerHTML = '';
+        hourGoalsList.innerHTML = '';
+        
+        // Restore all tasks
+        savedAllTasks.forEach(task => {
+          const todoId = `todo-${todoCounter++}`;
+          const todoItem = createTodoItem(todoId, task.text, task.completed);
+          allTasksList.appendChild(todoItem);
+        });
+        
+        // Restore hour goals
+        savedHourGoals.forEach(task => {
+          const todoId = `todo-${todoCounter++}`;
+          const todoItem = createTodoItem(todoId, task.text, task.completed);
+          hourGoalsList.appendChild(todoItem);
+        });
+        
+        // Restore reflections
+        reflections = savedReflections;
+        loadReflections();
+      } catch (e) {
+        console.error('Error loading from localStorage:', e);
+      }
+    }
+    
+    // Helper function to create a todo item
+    function createTodoItem(id, text, completed) {
+      const todoItem = document.createElement('div');
+      todoItem.className = 'todo-item';
+      if (completed) todoItem.classList.add('completed');
+      todoItem.id = id;
+      todoItem.setAttribute('draggable', 'true');
+      
+      // Create drag handle
+      const dragHandle = document.createElement('div');
+      dragHandle.className = 'drag-handle';
+      dragHandle.innerHTML = '&#8942;&#8942;';
+      
+      // Create checkbox
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'checkbox';
+      checkbox.checked = completed;
+      checkbox.addEventListener('change', function() {
+        todoItem.classList.toggle('completed', this.checked);
+        saveToLocalStorage();
       });
-    });
+      
+      // Create todo text
+      const todoTextSpan = document.createElement('span');
+      todoTextSpan.className = 'todo-text';
+      todoTextSpan.textContent = text;
+      
+      // Create delete button
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.addEventListener('click', function() {
+        todoItem.remove();
+        saveToLocalStorage();
+      });
+      
+      // Assemble todo item
+      todoItem.appendChild(dragHandle);
+      todoItem.appendChild(checkbox);
+      todoItem.appendChild(todoTextSpan);
+      todoItem.appendChild(deleteBtn);
+      
+      // Set up drag events
+      setupDraggable(todoItem);
+      
+      return todoItem;
+    }
+    
+    // Initialize the app when the page loads
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
